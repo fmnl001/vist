@@ -404,7 +404,10 @@ int main(int argc, char *argv[])
                           << "db host: " << config.db_host() << std::endl
                           << "db port: " << config.db_port() << std::endl
                           << "db name: " << config.db_name() << std::endl
-                          << "db user: " << config.db_login() << std::endl;
+                          << "db user: " << config.db_login() << std::endl
+                          << "log location: " << config.log_location() << std::endl
+                          << "consolelog: " << config.consolelog() << std::endl
+                          << "position poll timeout: " << config.position_poll_timeout << std::endl;
 
   int res = db_init_1(config.db_host().c_str(),
                       config.db_port(),
