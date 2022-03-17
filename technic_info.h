@@ -19,7 +19,8 @@ struct Technic_info
 
   std::string dt;
   std::string vec;
-  int mid;
+  std::string mid;
+  int mid_int;
   std::string lat;
   std::string lon;
   std::string fuel;
@@ -34,5 +35,5 @@ protected:
   time_t datetime_as_unix();
 
 private:
-  char *blob_;
+ BYTE *blob_;
 };

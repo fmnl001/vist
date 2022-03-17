@@ -56,7 +56,7 @@ static Config config;
 
 static Technic_info ti;
 static std::vector<Technic_info> tiv;
-static std::map<std::string , int> vecmidmap;
+//static std::map<std::string , int> vecmidmap;
 
 //------------------------------------------------------------------------------
 static
@@ -118,10 +118,16 @@ static void startElement(void *userData,
     if ((strcmp(name, "Technic") == 0)) {
       for (int i=0; atts[i]; i+=2)  {
         if (strcmp(atts[i], "vehicle_export_code") == 0) {
-          ti.vec = atts[i+1];
+          if (strlen(atts[i+1]))
+            ti.vec = atts[i+1];
         }
         else if (strcmp(atts[i], "message_id") == 0) {
-          ti.mid = std::stoi(atts[i+1]);
+          if (strlen(atts[i+1])) {
+            ti.mid = atts[i+1];
+//            try {
+//              ti.mid_int = stoi(atts[i+1]);
+//            } catch (std::exception & ex) {}
+          }
         } else if (strcmp(atts[i], "datetime") == 0) {
           ti.dt = atts[i+1];
         }
@@ -130,7 +136,7 @@ static void startElement(void *userData,
       std::string last_name ="";
       for (int i=0; atts[i]; i+=2)  {
         if (strcmp(atts[i], "name") == 0) {
-          last_name = atts[i+1];
+            last_name = atts[i+1];
         }
         else if (strcmp(atts[i], "value") == 0) {
           if (last_name.compare("latitude") == 0)
@@ -163,7 +169,13 @@ static void endElement(void *userData,
   state->depth--;
 
   if ((strcmp(name, "Technic") == 0)) {
-    tiv.push_back(ti);
+    if (!ti.dt.empty()
+//        && !ti.mid.empty()
+        && !ti.lat.empty()
+        && !ti.lon.empty())
+      tiv.push_back(ti);
+
+//    std::cerr << ti;
     ti.reset_data();
   }
 //  printf("%5lu   %10lu   %s\n", state->depth, state->characters.size, name);
@@ -222,10 +234,10 @@ static void
 process_data(std::vector<Technic_info> & tiv)
 {
   for (auto & i : tiv) {
-    if (vecmidmap[i.vec] != i.mid)
+//    if (vecmidmap[i.vec] != i.mid_int) {
       i.store_to_db();
-
-    vecmidmap[i.vec] = i.mid;
+//      vecmidmap[i.vec] = i.mid_int;
+//    }
   }
 }
 
@@ -305,7 +317,7 @@ void handler1(const boost::system::error_code& error,
 static
 int
 setup_cmd_options(int argc, char *argv[]) {
-  const std::string version{"CARETRACK parser v0.1"};
+  const std::string version{"VIST parser v0.1"};
 
   bpo::options_description usage("Usage");
   usage.add_options()
@@ -388,12 +400,11 @@ int main(int argc, char *argv[])
                 log_level);
 
   // print work configuration
-  BOOST_LOG_TRIVIAL(info) << "\nCARETRACK parser config:" << std::endl
+  BOOST_LOG_TRIVIAL(info) << "\nVIST parser config:" << std::endl
                           << "db host: " << config.db_host() << std::endl
                           << "db port: " << config.db_port() << std::endl
                           << "db name: " << config.db_name() << std::endl
                           << "db user: " << config.db_login() << std::endl;
-
 
   int res = db_init_1(config.db_host().c_str(),
                       config.db_port(),
@@ -401,7 +412,7 @@ int main(int argc, char *argv[])
                       config.db_login().c_str(),
                       config.db_pwd().c_str(),
                       nullptr,
-                      "caretrack");
+                      "vist");
 
   if (res != DB_RC_SUCCESS) {
     BOOST_LOG_TRIVIAL(error) << "failed to init db, rc=" << res << std::endl;

@@ -18,7 +18,7 @@
 #define default_db_host "localhost"
 static int  default_db_port=3306;
 #define default_db_name "gmng"
-static int MACHINE_POSITION_POLL_TIMEOUT = 60; // seconds
+static int MACHINE_POSITION_POLL_TIMEOUT = 30; // seconds
 
 //------------------------------------------------------------------------------
 Config::Config():dbms_host(default_db_host),

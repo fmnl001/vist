@@ -28,8 +28,7 @@ Technic_info::Technic_info (): blob_(nullptr)
 //------------------------------------------------------------------------------
 Technic_info::~Technic_info ()
 {
-  if (blob_)
-    free(blob_);
+  free(blob_);
   blob_ = nullptr;
 }
 
@@ -39,13 +38,15 @@ Technic_info::reset_data()
 {
   dt = "";
   vec = "";
-  mid = 0;
+  mid = "";
   lat = "";
   lon = "";
   fuel = "";
   speed = "";
-  if (blob_)
-    free(blob_);
+
+  mid_int = 0;
+
+  free(blob_);
   blob_ = nullptr;
 }
 
@@ -74,16 +75,15 @@ Technic_info::datetime_as_unix()
 size_t
 Technic_info::pack_as_blob()
 {
-  if (blob_)
-    free(blob_);
+  free(blob_);
 
   size_t rc=0;
 
   size_t size = sizeof(Rmc_);
-  BYTE * data = reinterpret_cast<BYTE *>(malloc(size));
-  std::fill(data, data+size, 0);
+  blob_ = reinterpret_cast<BYTE *>(malloc(size+sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
+  std::fill(blob_, blob_+size, 0);
 
-  auto sqlrmc = reinterpret_cast<Rmc_ *> (data);
+  auto sqlrmc = reinterpret_cast<Rmc_ *> (blob_);
 
   sqlrmc->header.type = FIELD_TYPE_POSITION;
   sqlrmc->header.length = sizeof(Rmc_) - sizeof(sqlrmc->header);
@@ -115,12 +115,12 @@ Technic_info::pack_as_blob()
   time_t navtime = ntohl(sqlrmc->dt);
   strftime(buffer,80,"%F %T%z", gmtime(&navtime));
 
-  BYTE * pdata = data + sizeof(Rmc_);
+  BYTE * pdata = blob_ + sizeof(Rmc_);
 
   if (!fuel.empty()) {
     try {
       auto f = std::stoi(fuel);
-      realloc(data, size + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header));
+//      data = reinterpret_cast<BYTE *>(realloc(data, size + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
       fld->type  = FIELD_TYPE_AIN|0x80;
       fld->length = sizeof(Sql_rmc_field_analog);
@@ -129,8 +129,7 @@ Technic_info::pack_as_blob()
       dt[0].pos = 0;
       dt[0].val = htons(f);
       pdata += sizeof(*dt);
-      size = pdata -data;
-      rc = size;
+      size = pdata - blob_;
     } catch (std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
     }
@@ -145,15 +144,17 @@ Technic_info::pack_as_blob()
   //        ntohl(sqlrmc->longitude)/600000.0,
   //        sp/1000.0
   //      );
-
+  rc = pdata - blob_;
   return rc;
 }
-
+#include <iostream>
 //------------------------------------------------------------------------------
 void
 Technic_info::store_to_db()
 {
   auto res = pack_as_blob();
+
+//  std::cerr << *this;
 
   if (res) {
     std::string id = VIST_ID_PREFIX_IN_DB + vec;

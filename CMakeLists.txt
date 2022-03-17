@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(caretrack LANGUAGES CXX)
+project(vistd LANGUAGES CXX)
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 set(Boost_USE_STATIC_LIBS  ON)
+
+include_directories(../p2db)
+link_directories(../p2db/build)
 
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED log log_setup filesystem thread program_options)
@@ -16,9 +19,6 @@ endif()
 #set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD 17)
 set(CXX_STANDARD_REQUIRED ON)
-
-include_directories(/opt/gsoap/include ../p2db)
-link_directories(/opt/gsoap/lib ../p2db/build)
 
 set(CMAKE_SKIP_BUILD_RPATH TRUE)
 
