@@ -56,7 +56,7 @@ static Config config;
 
 static Technic_info ti;
 static std::vector<Technic_info> tiv;
-//static std::map<std::string , int> vecmidmap;
+static std::map<std::string , int> vecmidmap;
 
 //------------------------------------------------------------------------------
 static
@@ -124,9 +124,11 @@ static void startElement(void *userData,
         else if (strcmp(atts[i], "message_id") == 0) {
           if (strlen(atts[i+1])) {
             ti.mid = atts[i+1];
-//            try {
-//              ti.mid_int = stoi(atts[i+1]);
-//            } catch (std::exception & ex) {}
+            if (ti.mid.compare("None") != 0) {
+              try {
+                ti.mid_int = stoi(atts[i+1]);
+              } catch (std::exception & ex) {}
+            }
           }
         } else if (strcmp(atts[i], "datetime") == 0) {
           ti.dt = atts[i+1];
@@ -155,7 +157,7 @@ static void startElement(void *userData,
     ti.reset_data();
   }
 
-  /* Get a clean slate for reading in character data. */
+  // Get a clean slate for reading in character data.
   free(state->characters.memory);
   state->characters.memory = nullptr;
   state->characters.size = 0;
@@ -169,13 +171,13 @@ static void endElement(void *userData,
   state->depth--;
 
   if ((strcmp(name, "Technic") == 0)) {
-    if (!ti.dt.empty()
-//        && !ti.mid.empty()
-        && !ti.lat.empty()
-        && !ti.lon.empty())
+    if (!ti.vec.empty() &&
+        !ti.dt.empty() &&
+        !ti.lat.empty() &&
+        !ti.lon.empty()) {
       tiv.push_back(ti);
+    }
 
-//    std::cerr << ti;
     ti.reset_data();
   }
 //  printf("%5lu   %10lu   %s\n", state->depth, state->characters.size, name);
@@ -234,10 +236,15 @@ static void
 process_data(std::vector<Technic_info> & tiv)
 {
   for (auto & i : tiv) {
-//    if (vecmidmap[i.vec] != i.mid_int) {
+    if (i.mid.empty()) {
       i.store_to_db();
-//      vecmidmap[i.vec] = i.mid_int;
-//    }
+    }
+    else if (i.mid.compare("None") == 0) {
+      i.store_to_db();
+    } else if (vecmidmap[i.vec] != i.mid_int) {
+      i.store_to_db();
+      vecmidmap[i.vec] = i.mid_int;
+    }
   }
 }
 
@@ -260,18 +267,18 @@ void handler1(const boost::system::error_code& error,
       state.ok = 1;
 
       // Initialize a namespace-aware parser.
-      parser = XML_ParserCreateNS(NULL, '\0');
+      parser = XML_ParserCreateNS(nullptr, '\0');
       XML_SetUserData(parser, &state);
       XML_SetElementHandler(parser, startElement, endElement);
       XML_SetCharacterDataHandler(parser, characterDataHandler);
 
       curl = curl_easy_init();
       if(curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, "http://vist_app_kru.ugmk.com/core/__event_state_values_export_view/?export_code");
+        curl_easy_setopt(curl, CURLOPT_URL, config.vurl.c_str());
 //        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36");
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-        curl_easy_setopt(curl, CURLOPT_USERNAME, "SyrovAA");
-        curl_easy_setopt(curl, CURLOPT_PASSWORD, "SyrovAA1");
+        curl_easy_setopt(curl, CURLOPT_USERNAME, config.vuser.c_str());
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, config.vpwd.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parseStreamCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)parser);
 
@@ -329,6 +336,9 @@ setup_cmd_options(int argc, char *argv[]) {
       ("dbname", bpo::value<std::string>(), "db name")
       ("dblogin", bpo::value<std::string>(), "db user")
       ("dbpwd", bpo::value<std::string>(), "db user pwd")
+      ("vurl", bpo::value<std::string>(), "vurl")
+      ("vuser", bpo::value<std::string>(), "vuser")
+      ("vpwd", bpo::value<std::string>(), "vpwd")
       ("consolelog", "skip logging to console")
       ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout");
 
@@ -381,6 +391,29 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cout << usage << std::endl;
       return 1;
     }
+
+    if (vm.count("vurl")) {
+      config.vurl = vm["vurl"].as<std::string>();
+    } else {
+      std::cerr << "vurl *must* be obligatory specified" << std::endl;
+      std::cerr << usage << std::endl;
+      return 1;
+    }
+    if (vm.count("vuser")) {
+      config.vuser = vm["vuser"].as<std::string>();
+    } else {
+      std::cerr << "vuser *must* be obligatory specified" << std::endl;
+      std::cerr << usage << std::endl;
+      return 1;
+    }
+    if (vm.count("vpwd")) {
+      config.vpwd = vm["vpwd"].as<std::string>();
+    } else {
+      std::cerr << "vpwd *must* be obligatory specified" << std::endl;
+      std::cerr << usage << std::endl;
+      return 1;
+    }
+
   } catch (const boost::program_options::error & err) {
     std::cerr << "wrong command line option, details: " << err.what() << std::endl;
     return -1;
@@ -396,8 +429,7 @@ int main(int argc, char *argv[])
   if (cmo_res !=0)
     return cmo_res;
 
-  setup_logging(config.log_location(),
-                log_level);
+  setup_logging(config.log_location(), log_level);
 
   // print work configuration
   BOOST_LOG_TRIVIAL(info) << "\nVIST parser config:" << std::endl
@@ -405,9 +437,11 @@ int main(int argc, char *argv[])
                           << "db port: " << config.db_port() << std::endl
                           << "db name: " << config.db_name() << std::endl
                           << "db user: " << config.db_login() << std::endl
+                          << "vurl: " << config.vurl << std::endl
+                          << "vuser: " << config.vuser << std::endl
                           << "log location: " << config.log_location() << std::endl
                           << "consolelog: " << config.consolelog() << std::endl
-                          << "position poll timeout: " << config.position_poll_timeout << std::endl;
+                          << "position poll timeout: " << config.position_poll_timeout << " (seconds)" << std::endl;
 
   int res = db_init_1(config.db_host().c_str(),
                       config.db_port(),

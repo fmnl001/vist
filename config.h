@@ -36,6 +36,10 @@ public:
   fs::path log_file_name;
   int position_poll_timeout;
 
+  std::string vurl;
+  std::string vuser;
+  std::string vpwd;
+
   std::string log_location() const;
   std::string db_host() const;
   int db_port() const;

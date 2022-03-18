@@ -46,8 +46,8 @@ Technic_info::reset_data()
 
   mid_int = 0;
 
-  free(blob_);
-  blob_ = nullptr;
+//  free(blob_);
+//  blob_ = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ Technic_info::pack_as_blob()
 
   unsigned int sp = 0;
   if (!speed.empty()) {
-    sp = static_cast<DWORD>(roundf(std::stof(speed)*1000.0));
+    sp = static_cast<DWORD>(roundf(std::stof(speed)*1000.0f));
     sqlrmc->speed_low = htons(sp&0x0000FFFF);
     sqlrmc->ext.bits.speed_hi = (sp&0x00030000)>>16;
   }
