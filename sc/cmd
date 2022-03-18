@@ -1,0 +1,1 @@
+awk -v e="57" -f ./parse.awk ./vist.csv > ./res.sql
