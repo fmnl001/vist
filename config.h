@@ -37,6 +37,7 @@ public:
   int position_poll_timeout;
 
   std::string vurl;
+  std::string vurl2;
   std::string vuser;
   std::string vpwd;
 

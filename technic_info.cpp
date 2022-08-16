@@ -43,8 +43,12 @@ Technic_info::reset_data()
   lon = "";
   fuel = "";
   speed = "";
+  course = "";
+  height = "";
 
   mid_int = 0;
+
+  wheel_preasure.clear();
 
 //  free(blob_);
 //  blob_ = nullptr;
@@ -80,7 +84,8 @@ Technic_info::pack_as_blob()
   size_t rc=0;
 
   size_t size = sizeof(Rmc_);
-  blob_ = reinterpret_cast<BYTE *>(malloc(size+sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
+  blob_ = reinterpret_cast<BYTE *>(malloc(size + wheel_preasure.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
+                                          + (fuel.empty() ? 0 : (sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)))));
   std::fill(blob_, blob_+size, 0);
 
   auto sqlrmc = reinterpret_cast<Rmc_ *> (blob_);
@@ -129,10 +134,32 @@ Technic_info::pack_as_blob()
       dt[0].pos = 0;
       dt[0].val = htons(f);
       pdata += sizeof(*dt);
+
       size = pdata - blob_;
     } catch (std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
     }
+  }
+
+  try {
+    int i=1;
+    for (const auto & kv : wheel_preasure) {
+      BOOST_LOG_TRIVIAL(trace) << "write to blob preasure [" << kv.first << "]: " << kv.second << "\n";
+      auto f = std::stoi(kv.second);
+      auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
+      fld->type  = FIELD_TYPE_AIN|0x80;
+      fld->length = sizeof(Sql_rmc_field_analog);
+      pdata += sizeof(*fld);
+      auto dt = reinterpret_cast<Sql_rmc_field_analog *> (pdata);
+      dt[0].pos = i++;
+      dt[0].val = htons(f);
+      pdata += sizeof(*dt);
+    }
+
+    size = pdata - blob_;
+  }
+  catch (std::exception& ex) {
+    BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
   }
 
   //      fprintf(stderr, "[%s] time=%s (time_t=%d), valid=%d, latitude=%f, longitude=%f, speed=%f (kmph)\n",
@@ -147,7 +174,10 @@ Technic_info::pack_as_blob()
   rc = pdata - blob_;
   return rc;
 }
+
+
 #include <iostream>
+#include "hexdump.h"
 //------------------------------------------------------------------------------
 void
 Technic_info::store_to_db()
@@ -158,6 +188,13 @@ Technic_info::store_to_db()
 
   if (res) {
     std::string id = VIST_ID_PREFIX_IN_DB + vec;
+
+    if (res > sizeof(Rmc_) + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)) {
+      std::ostringstream os;
+      neolib::hex_dump(blob_, res, os);
+      BOOST_LOG_TRIVIAL(trace) << "[" << this->vec << "][" << id << "] blob " << res << " bytes hex dump:\n" << os.str();
+    }
+
     db_store_data(id.c_str(),
                   datetime_as_unix(),
                   (const BYTE*) blob_,
@@ -177,9 +214,20 @@ std::ostream& operator<<(std::ostream& os, const Technic_info& ti)
   os << "datetime: " << ti.dt << "\n";
   os << "latitude: " << ti.lat << "\n";
   os << "longitude: " << ti.lon << "\n";
-  os << "speed: " << ti.speed << "\n";
-  os << "fuel: " << ti.fuel << "\n";
+  if (!ti.speed.empty())
+    os << "speed: " << ti.speed << "\n";
+  if (!ti.course.empty())
+    os << "course: " << ti.course << "\n";
+  if (!ti.height.empty())
+    os << "height: " << ti.height << "\n";
+  if (!ti.fuel.empty())
+    os << "fuel: " << ti.fuel << "\n";
+  if (!ti.wheel_preasure.empty()) {
+    os << "wheel preasure:\n";
+    for (auto const &i: ti.wheel_preasure) {
+      os << "\t[" << i.first << "]:"  << i.second << "\n";
+    }
+  }
   os << "---------------------------------------------\n";
   return os;
 }
-

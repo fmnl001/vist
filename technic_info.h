@@ -8,6 +8,7 @@
 #include "types.h"
 #include <stdlib.h>
 #include <string>
+#include <map>
 
 /*
  *
@@ -25,6 +26,10 @@ struct Technic_info
   std::string lon;
   std::string fuel;
   std::string speed;
+
+  std::string height;
+  std::string course;
+  std::map<std::string,std::string> wheel_preasure;
 
   void reset_data();
   friend std::ostream& operator<<(std::ostream& os, const Technic_info& ti);
