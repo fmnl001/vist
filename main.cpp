@@ -486,7 +486,7 @@ setup_cmd_options(int argc, char *argv[]) {
       return 1;
     }
     if (vm.count("log-level")) {
-      config.log_level = vm["loglevel"].as<int>();
+      config.log_level = vm["log-level"].as<int>();
     }
 
   } catch (const boost::program_options::error & err) {

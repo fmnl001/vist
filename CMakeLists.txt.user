@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 8.0.0, 2022-08-18T10:14:44. -->
+<!-- Written by QtCreator 8.0.0, 2022-08-18T18:36:51. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -8,7 +8,7 @@
  </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
-  <value type="qlonglong">0</value>
+  <value type="qlonglong">1</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.EditorSettings</variable>
@@ -284,7 +284,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">vistd</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.vistd</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">vistd</value>
-    <value type="QString" key="RunConfiguration.Arguments">-l /tmp --dbhost 10.100.53.30 --dbname gmng --dblogin vist_parser --dbpwd vist_parser  --console --vurl http://vist-app-kdr-kru.ugmk.com/core/__event_state_values_export_view --vurl2=http://vist-app-kdr-kru.ugmk.com/core/__analytic_entities_values_export_view --vuser SyrovAA --vpwd FCR\$1812</value>
+    <value type="QString" key="RunConfiguration.Arguments">-l /tmp --dbhost 10.100.53.30 --dbname gmng --dblogin vist_parser --dbpwd vist_parser  --console --vurl http://vist-app-kdr-kru.ugmk.com/core/__event_state_values_export_view --vurl2=http://vist-app-kdr-kru.ugmk.com/core/__analytic_entities_values_export_view --vuser SyrovAA --vpwd FCR\$1812 --log-level 6</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
@@ -509,7 +509,7 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">vistd</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">CMakeProjectManager.CMakeRunConfiguration.vistd</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">vistd</value>
-    <value type="QString" key="RunConfiguration.Arguments">-l /tmp --dbhost 10.100.53.30 --dbname gmng --dblogin vist_parser --dbpwd vist_parser  --console --vurl http://vist-app-kdr-kru.ugmk.com/core/__event_state_values_export_view --vurl2=http://vist-app-kdr-kru.ugmk.com/core/__analytic_entities_values_export_view --vuser SyrovAA --vpwd FCR\$1812</value>
+    <value type="QString" key="RunConfiguration.Arguments">-l /tmp --dbhost 10.100.53.30 --dbname gmng --dblogin vist_parser --dbpwd vist_parser  --console --vurl http://vist-app-kdr-kru.ugmk.com/core/__event_state_values_export_view --vurl2=http://vist-app-kdr-kru.ugmk.com/core/__analytic_entities_values_export_view --vuser SyrovAA --vpwd FCR\$1812 --log-level 6</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
