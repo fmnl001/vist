@@ -485,7 +485,7 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cerr << usage << std::endl;
       return 1;
     }
-    if (vm.count("log-lievel")) {
+    if (vm.count("log-level")) {
       config.log_level = vm["loglevel"].as<int>();
     }
 
