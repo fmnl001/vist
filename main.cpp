@@ -218,10 +218,13 @@ static void startElement2(void *userData,
           if (!last_id.compare("741")
               || !last_id.compare("742")
               || !last_id.compare("743")
-              || !last_id.compare("744"))
+              || !last_id.compare("744")
+              || !last_id.compare("41")
+              || !last_id.compare("202")
+              )
           {
             if (std::strlen(atts[i + 1]) != 0) {
-              ti.axis_load_current[last_id] = atts[i + 1];
+              ti.analytic_entity[last_id] = atts[i + 1];
 //              vec_aux_info_map[ti.vec] = ti;
             }
           }

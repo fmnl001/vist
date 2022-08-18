@@ -48,7 +48,7 @@ Technic_info::reset_data()
 
   mid_int = 0;
 
-  axis_load_current.clear();
+  analytic_entity.clear();
 
 //  free(blob_);
 //  blob_ = nullptr;
@@ -84,7 +84,7 @@ Technic_info::pack_as_blob()
   size_t rc=0;
 
   size_t size = sizeof(Rmc_);
-  blob_ = reinterpret_cast<BYTE *>(malloc(size + axis_load_current.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
+  blob_ = reinterpret_cast<BYTE *>(malloc(size + analytic_entity.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
                                           + (fuel.empty() ? 0 : (sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)))));
   std::fill(blob_, blob_+size, 0);
 
@@ -142,17 +142,40 @@ Technic_info::pack_as_blob()
   }
 
   try {
-    int i=1;
-    for (const auto & kv : axis_load_current) {
-      BOOST_LOG_TRIVIAL(trace) << "write to blob preasure [" << kv.first << "]: " << kv.second << "\n";
-      auto f = std::stoi(kv.second);
+
+    for (const auto & kv : analytic_entity) {
+      BOOST_LOG_TRIVIAL(trace) << "write to blob analytic entity id[" << kv.first << "]: " << kv.second << "\n";
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
       fld->type  = FIELD_TYPE_AIN|0x80;
       fld->length = sizeof(Sql_rmc_field_analog);
       pdata += sizeof(*fld);
       auto dt = reinterpret_cast<Sql_rmc_field_analog *> (pdata);
-      dt[0].pos = i++;
-      dt[0].val = htons(f);
+
+      switch (std::stoi(kv.first)) {
+      case 741:
+        dt[0].pos = 1;
+        break;
+      case 742:
+        dt[0].pos = 2;
+        break;
+      case 743:
+        dt[0].pos = 3;
+        break;
+      case 744:
+        dt[0].pos = 4;
+        break;
+      case 2:
+        dt[0].pos = 5;
+        break;
+      case 202:
+        dt[0].pos = 6;
+        break;
+
+      default:
+        dt[0].pos = 1;
+      }
+
+      dt[0].val = htons(std::stoi(kv.second));
       pdata += sizeof(*dt);
     }
 
@@ -222,9 +245,9 @@ std::ostream& operator<<(std::ostream& os, const Technic_info& ti)
     os << "height: " << ti.height << "\n";
   if (!ti.fuel.empty())
     os << "fuel: " << ti.fuel << "\n";
-  if (!ti.axis_load_current.empty()) {
-    os << "axis_load_current:\n";
-    for (auto const &i: ti.axis_load_current) {
+  if (!ti.analytic_entity.empty()) {
+    os << "AnalyticEntity:\n";
+    for (auto const &i: ti.analytic_entity) {
       os << "\t[" << i.first << "]:"  << i.second << "\n";
     }
   }
