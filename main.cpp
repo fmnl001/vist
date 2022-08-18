@@ -409,7 +409,7 @@ setup_cmd_options(int argc, char *argv[]) {
       ("vpwd", bpo::value<std::string>(), "vpwd")
       ("consolelog", "skip logging to console")
       ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout")
-      ("loglevel", bpo::value<int>(), "logging level (1-6) more level, more details");
+      ("log-level", bpo::value<int>(), "logging level (1-6) more level, more details");
 
   bpo::variables_map vm;
   try {
@@ -485,7 +485,7 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cerr << usage << std::endl;
       return 1;
     }
-    if (vm.count("loglevel")) {
+    if (vm.count("log-lievel")) {
       config.log_level = vm["loglevel"].as<int>();
     }
 
