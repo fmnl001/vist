@@ -135,8 +135,6 @@ Technic_info::pack_as_blob()
       dt[0].pos = 0;
       dt[0].val = htons(f);
       pdata += sizeof(*dt);
-
-      size = pdata - blob_;
     } catch (std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
     }
@@ -178,24 +176,12 @@ Technic_info::pack_as_blob()
       dt[0].val = htons(std::stoi(kv.second));
       pdata += sizeof(*dt);
     }
-
-    size = pdata - blob_;
   }
   catch (std::exception& ex) {
     BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
   }
 
-  //      fprintf(stderr, "[%s] time=%s (time_t=%d), valid=%d, latitude=%f, longitude=%f, speed=%f (kmph)\n",
-  //        vec.c_str(),
-  //        buffer,
-  //        ntohl(sqlrmc->dt),
-  //        static_cast<int>(sqlrmc->ext.bits.valid),
-  //        ntohl(sqlrmc->latitude)/600000.0,
-  //        ntohl(sqlrmc->longitude)/600000.0,
-  //        sp/1000.0
-  //      );
-  rc = pdata - blob_;
-  return rc;
+  return pdata - blob_;;
 }
 
 
@@ -212,11 +198,11 @@ Technic_info::store_to_db()
   if (res) {
     std::string id = VIST_ID_PREFIX_IN_DB + vec;
 
-    if (res > sizeof(Rmc_) + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)) {
+//    if (res > sizeof(Rmc_) + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)) {
       std::ostringstream os;
       neolib::hex_dump(blob_, res, os);
       BOOST_LOG_TRIVIAL(trace) << "[" << this->vec << "][" << id << "] blob " << res << " bytes hex dump:\n" << os.str();
-    }
+//    }
 
     db_store_data(id.c_str(),
                   datetime_as_unix(),

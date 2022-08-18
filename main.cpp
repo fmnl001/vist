@@ -39,8 +39,6 @@
 
 using namespace std;
 
-static int log_level = 6;
-
 namespace logging = boost::log;
 namespace keywords = boost::log::keywords;
 namespace expr = boost::log::expressions;
@@ -410,7 +408,8 @@ setup_cmd_options(int argc, char *argv[]) {
       ("vuser", bpo::value<std::string>(), "vuser")
       ("vpwd", bpo::value<std::string>(), "vpwd")
       ("consolelog", "skip logging to console")
-      ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout");
+      ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout")
+      ("loglevel", bpo::value<int>(), "logging level (1-6) more level, more details");
 
   bpo::variables_map vm;
   try {
@@ -486,6 +485,9 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cerr << usage << std::endl;
       return 1;
     }
+    if (vm.count("loglevel")) {
+      config.log_level = vm["loglevel"].as<int>();
+    }
 
   } catch (const boost::program_options::error & err) {
     std::cerr << "wrong command line option, details: " << err.what() << std::endl;
@@ -502,7 +504,7 @@ int main(int argc, char *argv[])
   if (cmo_res !=0)
     return cmo_res;
 
-  setup_logging(config.log_location(), log_level);
+  setup_logging(config.log_location(), config.log_level);
 
   // print work configuration
   BOOST_LOG_TRIVIAL(info) << "\nVIST parser config:" << std::endl
@@ -515,7 +517,8 @@ int main(int argc, char *argv[])
                           << "vuser: " << config.vuser << std::endl
                           << "log location: " << config.log_location() << std::endl
                           << "consolelog: " << config.consolelog() << std::endl
-                          << "position poll timeout: " << config.position_poll_timeout << " (seconds)" << std::endl;
+                          << "position poll timeout: " << config.position_poll_timeout << " (seconds)" << std::endl
+                          << "log level: " << config.log_level << std::endl << std::endl;
 
   int res = db_init_1(config.db_host().c_str(),
                       config.db_port(),
