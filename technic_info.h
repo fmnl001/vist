@@ -29,7 +29,7 @@ struct Technic_info
 
   std::string height;
   std::string course;
-  std::map<std::string,std::string> wheel_preasure;
+  std::map<std::string,std::string> axis_load_current;
 
   void reset_data();
   friend std::ostream& operator<<(std::ostream& os, const Technic_info& ti);

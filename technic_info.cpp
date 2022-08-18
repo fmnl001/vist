@@ -48,7 +48,7 @@ Technic_info::reset_data()
 
   mid_int = 0;
 
-  wheel_preasure.clear();
+  axis_load_current.clear();
 
 //  free(blob_);
 //  blob_ = nullptr;
@@ -84,7 +84,7 @@ Technic_info::pack_as_blob()
   size_t rc=0;
 
   size_t size = sizeof(Rmc_);
-  blob_ = reinterpret_cast<BYTE *>(malloc(size + wheel_preasure.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
+  blob_ = reinterpret_cast<BYTE *>(malloc(size + axis_load_current.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
                                           + (fuel.empty() ? 0 : (sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)))));
   std::fill(blob_, blob_+size, 0);
 
@@ -143,7 +143,7 @@ Technic_info::pack_as_blob()
 
   try {
     int i=1;
-    for (const auto & kv : wheel_preasure) {
+    for (const auto & kv : axis_load_current) {
       BOOST_LOG_TRIVIAL(trace) << "write to blob preasure [" << kv.first << "]: " << kv.second << "\n";
       auto f = std::stoi(kv.second);
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
@@ -222,9 +222,9 @@ std::ostream& operator<<(std::ostream& os, const Technic_info& ti)
     os << "height: " << ti.height << "\n";
   if (!ti.fuel.empty())
     os << "fuel: " << ti.fuel << "\n";
-  if (!ti.wheel_preasure.empty()) {
-    os << "wheel preasure:\n";
-    for (auto const &i: ti.wheel_preasure) {
+  if (!ti.axis_load_current.empty()) {
+    os << "axis_load_current:\n";
+    for (auto const &i: ti.axis_load_current) {
       os << "\t[" << i.first << "]:"  << i.second << "\n";
     }
   }

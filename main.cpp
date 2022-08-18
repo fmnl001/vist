@@ -215,15 +215,13 @@ static void startElement2(void *userData,
         } else if (strcmp(atts[i], "name") == 0) {
             last_name = atts[i + 1];
         } else if (strcmp(atts[i], "value") == 0) {
-          if (!last_id.compare("1201")
-              || !last_id.compare("1202")
-              || !last_id.compare("1203")
-              || !last_id.compare("1204")
-              || !last_id.compare("1205")
-              || !last_id.compare("1206"))
+          if (!last_id.compare("741")
+              || !last_id.compare("742")
+              || !last_id.compare("743")
+              || !last_id.compare("744"))
           {
             if (std::strlen(atts[i + 1]) != 0) {
-              ti.wheel_preasure[last_id] = atts[i + 1];
+              ti.axis_load_current[last_id] = atts[i + 1];
 //              vec_aux_info_map[ti.vec] = ti;
             }
           }
