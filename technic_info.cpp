@@ -164,7 +164,7 @@ Technic_info::pack_as_blob()
       case 744:
         dt[0].pos = 4;
         break;
-      case 2:
+      case 41:
         dt[0].pos = 5;
         break;
       case 202:
