@@ -125,6 +125,7 @@ Technic_info::pack_as_blob()
   if (!fuel.empty()) {
     try {
       auto f = std::stoi(fuel);
+      BOOST_LOG_TRIVIAL(trace) << "write to blob fuel val: " << f << "\n";
 //      data = reinterpret_cast<BYTE *>(realloc(data, size + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
       fld->type  = FIELD_TYPE_AIN|0x80;
@@ -142,7 +143,6 @@ Technic_info::pack_as_blob()
   }
 
   try {
-
     for (const auto & kv : analytic_entity) {
       BOOST_LOG_TRIVIAL(trace) << "write to blob analytic entity id[" << kv.first << "]: " << kv.second << "\n";
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
