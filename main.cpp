@@ -308,7 +308,7 @@ process_data(std::vector<Technic_info> & tiv)
 void handler1(const boost::system::error_code& error,
               boost::asio::deadline_timer* t)
 {
-  BOOST_LOG_NAMED_SCOPE("[handler1] ")
+  BOOST_LOG_NAMED_SCOPE("[work thread] ")
 
   try {
     if (!error) {
@@ -328,7 +328,7 @@ void handler1(const boost::system::error_code& error,
       curl = curl_easy_init();
       if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, config.vurl.c_str());
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, config.service_reply_timeout);
         curl_easy_setopt(curl, CURLOPT_USERNAME, config.vuser.c_str());
         curl_easy_setopt(curl, CURLOPT_PASSWORD, config.vpwd.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parseStreamCallback);
@@ -338,13 +338,13 @@ void handler1(const boost::system::error_code& error,
         res = curl_easy_perform(curl);
 
         if(res != CURLE_OK) {
-          BOOST_LOG_TRIVIAL(error) << "curl_easy_perform() failed: " << curl_easy_strerror(res);
+          BOOST_LOG_TRIVIAL(error) << "target service query(1) failed, reason: " << curl_easy_strerror(res);
         }
         else {
           // Expat requires one final call to finalize parsing.
           if(XML_Parse(parser, nullptr, 0, 1) == 0) {
             int error_code = XML_GetErrorCode(parser);
-            BOOST_LOG_TRIVIAL(error) << "Finalizing parsing failed with error code " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
+            BOOST_LOG_TRIVIAL(error) << "finalizing parsing service(1) reply failed, reason: " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
           }
           else {
             if (!config.vurl2.empty()) {
@@ -355,12 +355,12 @@ void handler1(const boost::system::error_code& error,
               res = curl_easy_perform(curl);
 
               if (res != CURLE_OK) {
-                BOOST_LOG_TRIVIAL(error) << "curl_easy_perform() failed: " << curl_easy_strerror(res);
+                BOOST_LOG_TRIVIAL(error) << "target service query(2) failed, reason: " << curl_easy_strerror(res);
               } else {
                 // Expat requires one final call to finalize parsing.
                 if (XML_Parse(parser2, nullptr, 0, 1) == 0) {
                   int error_code = XML_GetErrorCode(parser2);
-                  BOOST_LOG_TRIVIAL(error) << "Finalizing parsing failed with error code " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
+                  BOOST_LOG_TRIVIAL(error) << "finalizing parsing service(2) reply failed, reason: " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
                 } else {
                   BOOST_LOG_TRIVIAL(trace) << "got  " << tiv.size() << " records after url2\n";
                 }
@@ -383,7 +383,7 @@ void handler1(const boost::system::error_code& error,
       BOOST_LOG_TRIVIAL(error) << "got std::exception, reason= " << ex.what();
   }
 
-  t->expires_at(t->expires_at() + boost::posix_time::seconds(config.position_poll_timeout));
+  t->expires_at(t->expires_at() + boost::posix_time::seconds(config.service_poll_timeout));
   t->async_wait(boost::bind(handler1, boost::asio::placeholders::error, t));
 }
 
@@ -408,8 +408,9 @@ setup_cmd_options(int argc, char *argv[]) {
       ("vuser", bpo::value<std::string>(), "vuser")
       ("vpwd", bpo::value<std::string>(), "vpwd")
       ("consolelog", "skip logging to console")
-      ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout")
-      ("log-level", bpo::value<int>(), "logging level (1-6) more level, more details");
+      ("poll-timeout,pt", bpo::value<int>(), "position poll timeout")
+      ("log-level", bpo::value<int>(), "logging level (1-6) more level, more details")
+      ("reply-timeout, rt", bpo::value<int>(), "service reply timeout");
 
   bpo::variables_map vm;
   try {
@@ -435,8 +436,8 @@ setup_cmd_options(int argc, char *argv[]) {
       config.log_file_path = vm["lfpath"].as<std::string>();
     }
 
-    if (vm.count("pospolltimeout")) {
-      config.position_poll_timeout = vm["pospolltimeout"].as<int>();
+    if (vm.count("poll-timeout")) {
+      config.service_poll_timeout = vm["pospolltimeout"].as<int>();
     }
 
     if (vm.count("dbhost")) {
@@ -489,6 +490,10 @@ setup_cmd_options(int argc, char *argv[]) {
       config.log_level = vm["log-level"].as<int>();
     }
 
+    if (vm.count("reply-timeout")) {
+      config.service_reply_timeout = vm["reply-timeout"].as<int>();
+    }
+
   } catch (const boost::program_options::error & err) {
     std::cerr << "wrong command line option, details: " << err.what() << std::endl;
     return -1;
@@ -517,7 +522,8 @@ int main(int argc, char *argv[])
                           << "vuser: " << config.vuser << std::endl
                           << "log location: " << config.log_location() << std::endl
                           << "consolelog: " << config.consolelog() << std::endl
-                          << "position poll timeout: " << config.position_poll_timeout << " (seconds)" << std::endl
+                          << "service poll timeout: " << config.service_poll_timeout << " (seconds)" << std::endl
+                          << "service reply timeout: " << config.service_reply_timeout << " (seconds)" << std::endl
                           << "log level: " << config.log_level << std::endl << std::endl;
 
   int res = db_init_1(config.db_host().c_str(),
