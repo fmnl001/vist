@@ -437,7 +437,7 @@ setup_cmd_options(int argc, char *argv[]) {
     }
 
     if (vm.count("poll-timeout")) {
-      config.service_poll_timeout = vm["pospolltimeout"].as<int>();
+      config.service_poll_timeout = vm["poll-timeout"].as<int>();
     }
 
     if (vm.count("dbhost")) {
