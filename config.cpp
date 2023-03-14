@@ -18,7 +18,9 @@
 #define default_db_host "localhost"
 static int  default_db_port=3306;
 #define default_db_name "gmng"
-static int MACHINE_POSITION_POLL_TIMEOUT = 30; // seconds
+static int SERVICE_POLL_TIMEOUT = 30; // seconds
+static int SERVICE_REPLY_TIMEOUT = 10; // seconds
+static int log_level_default = 5;
 
 //------------------------------------------------------------------------------
 Config::Config():dbms_host(default_db_host),
@@ -26,7 +28,9 @@ Config::Config():dbms_host(default_db_host),
                  dbms_dbname(default_db_name),
                  log_file_path(default_log_file_path),
                  log_file_name(default_log_file_name),
-                 position_poll_timeout(MACHINE_POSITION_POLL_TIMEOUT),
+                 log_level(log_level_default),
+                 service_poll_timeout(SERVICE_POLL_TIMEOUT),
+                 service_reply_timeout(SERVICE_REPLY_TIMEOUT),
                  log2console(false)
 {
 }

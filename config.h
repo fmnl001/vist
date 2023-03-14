@@ -34,9 +34,12 @@ public:
 
   fs::path log_file_path;
   fs::path log_file_name;
-  int position_poll_timeout;
+  int log_level;
+  int service_poll_timeout;
+  int service_reply_timeout;
 
   std::string vurl;
+  std::string vurl2;
   std::string vuser;
   std::string vpwd;
 

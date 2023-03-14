@@ -39,8 +39,6 @@
 
 using namespace std;
 
-static int log_level = 6;
-
 namespace logging = boost::log;
 namespace keywords = boost::log::keywords;
 namespace expr = boost::log::expressions;
@@ -57,6 +55,7 @@ static Config config;
 static Technic_info ti;
 static std::vector<Technic_info> tiv;
 static std::map<std::string , int> vecmidmap;
+static std::map<std::string, Technic_info> vec_aux_info_map;
 
 //------------------------------------------------------------------------------
 static
@@ -110,10 +109,6 @@ static void startElement(void *userData,
                          const XML_Char *name,
                          const XML_Char **atts)
 {
-  struct ParserStruct *state = (struct ParserStruct *) userData;
-  state->tags++;
-  state->depth++;
-
   try {
     if ((strcmp(name, "Technic") == 0)) {
       for (int i=0; atts[i]; i+=2)  {
@@ -156,20 +151,12 @@ static void startElement(void *userData,
     BOOST_LOG_TRIVIAL(warning) << "got std::exception in phase startElem, reason: " << ex.what();
     ti.reset_data();
   }
-
-  // Get a clean slate for reading in character data.
-  free(state->characters.memory);
-  state->characters.memory = nullptr;
-  state->characters.size = 0;
 }
 
 //------------------------------------------------------------------------------
 static void endElement(void *userData,
                        const XML_Char *name)
 {
-  struct ParserStruct *state = (struct ParserStruct *) userData;
-  state->depth--;
-
   if ((strcmp(name, "Technic") == 0)) {
     if (!ti.vec.empty() &&
         !ti.dt.empty() &&
@@ -184,27 +171,86 @@ static void endElement(void *userData,
 }
 
 //------------------------------------------------------------------------------
-static void characterDataHandler(void *userData,
-                                 const XML_Char *s,
-                                 int len)
+static void startElement2(void *userData,
+                         const XML_Char *name,
+                         const XML_Char **atts)
 {
-  struct ParserStruct *state = (struct ParserStruct *) userData;
-  struct MemoryStruct *mem = &state->characters;
+  try {
+    if ((strcmp(name, "Technic") == 0)) {
+      for (int i=0; atts[i]; i+=2)  {
+        if (strcmp(atts[i], "export_code") == 0) {
+          if (strlen(atts[i+1]))
+            ti.vec = atts[i+1];
+        } else if (strcmp(atts[i], "datetime") == 0) {
+          ti.dt = atts[i+1];
+        }
+      }
+    } else if ((strcmp(name, "Parameter") == 0)) {
+      std::string last_name ="";
+      for (int i=0; atts[i]; i+=2)  {
+        if (strcmp(atts[i], "name") == 0) {
+            last_name = atts[i+1];
+        }
+        else if (strcmp(atts[i], "value") == 0) {
+          if (last_name.compare("latitude") == 0)
+            ti.lat = atts[i+1];
+          else if (last_name.compare("longitude") == 0)
+            ti.lon = atts[i+1];
+          else if (last_name.compare("speed") == 0)
+            ti.speed = atts[i+1];
+          else if (last_name.compare("height") == 0)
+            ti.height = atts[i+1];
+          else if (last_name.compare("course") == 0)
+            ti.course = atts[i+1];
+        }
+      }
+    } else if ((strcmp(name, "AnalyticEntity") == 0)) {
+      std::string last_name, last_id;
 
-  char *ptr = (char*)realloc(mem->memory, mem->size + len + 1);
-  if(!ptr) {
-    /* Out of memory. */
-    BOOST_LOG_TRIVIAL(fatal) << "Not enough memory (realloc returned NULL)";
-    state->ok = 0;
-    return;
+      for (int i = 0; atts[i]; i += 2) {
+        if (strcmp(atts[i], "id") == 0) {
+          last_id = atts[i + 1];
+        } else if (strcmp(atts[i], "name") == 0) {
+            last_name = atts[i + 1];
+        } else if (strcmp(atts[i], "value") == 0) {
+          if (!last_id.compare("741")
+              || !last_id.compare("742")
+              || !last_id.compare("743")
+              || !last_id.compare("744")
+              || !last_id.compare("41")
+              || !last_id.compare("202")
+              )
+          {
+            if (std::strlen(atts[i + 1]) != 0) {
+              ti.analytic_entity[last_id] = atts[i + 1];
+//              vec_aux_info_map[ti.vec] = ti;
+            }
+          }
+        }
+      }
+    }
+  } catch (std::exception & ex) {
+    BOOST_LOG_TRIVIAL(warning) << "got std::exception in phase startElem, reason: " << ex.what();
+    ti.reset_data();
   }
-
-  mem->memory = ptr;
-  memcpy(&(mem->memory[mem->size]), s, len);
-  mem->size += len;
-  mem->memory[mem->size] = 0;
 }
 
+//------------------------------------------------------------------------------
+static void endElement2(void *userData,
+                       const XML_Char *name)
+{
+  if ((strcmp(name, "Technic") == 0)) {
+    if (!ti.vec.empty() &&
+        !ti.dt.empty() &&
+        !ti.lat.empty() &&
+        !ti.lon.empty()) {
+      tiv.push_back(ti);
+    }
+
+    ti.reset_data();
+  }
+//  printf("%5lu   %10lu   %s\n", state->depth, state->characters.size, name);
+}
 
 //------------------------------------------------------------------------------
 static size_t parseStreamCallback(void *contents,
@@ -214,10 +260,9 @@ static size_t parseStreamCallback(void *contents,
 {
   XML_Parser parser = (XML_Parser) userp;
   size_t real_size = length * nmemb;
-  struct ParserStruct *state = (struct ParserStruct *) XML_GetUserData(parser);
 
   // Only parse if we are not already in a failure state.
-  if(state->ok && XML_Parse(parser, (const char *)contents, real_size, 0) == 0) {
+  if(XML_Parse(parser, (const char *)contents, real_size, 0) == 0) {
     auto error_code = XML_GetErrorCode(parser);
 
     BOOST_LOG_TRIVIAL(error) << "Parsing response buffer of length: "
@@ -225,7 +270,6 @@ static size_t parseStreamCallback(void *contents,
                              << " with error code: " << error_code
                              << "(" << XML_ErrorString(error_code) << ")"
                              << " failed";
-    state->ok = 0;
   }
 
   return real_size;
@@ -235,13 +279,25 @@ static size_t parseStreamCallback(void *contents,
 static void
 process_data(std::vector<Technic_info> & tiv)
 {
-  for (auto & i : tiv) {
+  for (auto i : tiv) {
+//    if (vec_aux_info_map.contains(i.vec)) {
+//      BOOST_LOG_TRIVIAL(trace) << "matching id: " << i.vec << " with vec_aux_info_map, dump id data:\n"
+//         << i << "\n" << "dump map data:\n" << vec_aux_info_map[i.vec] << "\n";
+
+//      i.dt = vec_aux_info_map[i.vec].dt;
+//      i.lon = vec_aux_info_map[i.vec].lat;
+//      i.lon = vec_aux_info_map[i.vec].lon;
+//      i.wheel_preasure = vec_aux_info_map[i.vec].wheel_preasure;
+//      i.height = vec_aux_info_map[i.vec].height;
+//      i.course = vec_aux_info_map[i.vec].course;
+//    }
     if (i.mid.empty()) {
       i.store_to_db();
     }
     else if (i.mid.compare("None") == 0) {
       i.store_to_db();
-    } else if (vecmidmap[i.vec] != i.mid_int) {
+    }
+    else if (vecmidmap[i.vec] != i.mid_int) {
       i.store_to_db();
       vecmidmap[i.vec] = i.mid_int;
     }
@@ -252,57 +308,68 @@ process_data(std::vector<Technic_info> & tiv)
 void handler1(const boost::system::error_code& error,
               boost::asio::deadline_timer* t)
 {
-  BOOST_LOG_NAMED_SCOPE("[handler1] ")
+  BOOST_LOG_NAMED_SCOPE("[work thread] ")
 
   try {
     if (!error) {
       CURL *curl;
       CURLcode res;
 
-      XML_Parser parser;
-      struct ParserStruct state;
-
-      // Initialize the state structure for parsing.
-      memset(&state, 0, sizeof(struct ParserStruct));
-      state.ok = 1;
+      XML_Parser parser,parser2;
 
       // Initialize a namespace-aware parser.
       parser = XML_ParserCreateNS(nullptr, '\0');
-      XML_SetUserData(parser, &state);
       XML_SetElementHandler(parser, startElement, endElement);
-      XML_SetCharacterDataHandler(parser, characterDataHandler);
+
+      // Initialize a namespace-aware parser.
+      parser2 = XML_ParserCreateNS(nullptr, '\0');
+      XML_SetElementHandler(parser2, startElement2, endElement2);
 
       curl = curl_easy_init();
       if(curl) {
         curl_easy_setopt(curl, CURLOPT_URL, config.vurl.c_str());
-//        curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36");
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, config.service_reply_timeout);
         curl_easy_setopt(curl, CURLOPT_USERNAME, config.vuser.c_str());
         curl_easy_setopt(curl, CURLOPT_PASSWORD, config.vpwd.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parseStreamCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)parser);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
         res = curl_easy_perform(curl);
 
         if(res != CURLE_OK) {
-          BOOST_LOG_TRIVIAL(error) << "curl_easy_perform() failed: " << curl_easy_strerror(res);
+          BOOST_LOG_TRIVIAL(error) << "target service query(1) failed, reason: " << curl_easy_strerror(res);
         }
-        else if(state.ok) {
-          /* Expat requires one final call to finalize parsing. */
+        else {
+          // Expat requires one final call to finalize parsing.
           if(XML_Parse(parser, nullptr, 0, 1) == 0) {
             int error_code = XML_GetErrorCode(parser);
-            BOOST_LOG_TRIVIAL(error) << "Finalizing parsing failed with error code "
-                                     << error_code
-                                     << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
+            BOOST_LOG_TRIVIAL(error) << "finalizing parsing service(1) reply failed, reason: " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
           }
           else {
-//            printf("                     --------------\n");
-//            printf("                     %lu tags total\n", state.tags);
+            if (!config.vurl2.empty()) {
+              BOOST_LOG_TRIVIAL(trace) << "got  " << tiv.size() << " records after url1\n";
+              curl_easy_setopt(curl, CURLOPT_URL, config.vurl2.c_str());
+              curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)parser2);
+
+              res = curl_easy_perform(curl);
+
+              if (res != CURLE_OK) {
+                BOOST_LOG_TRIVIAL(error) << "target service query(2) failed, reason: " << curl_easy_strerror(res);
+              } else {
+                // Expat requires one final call to finalize parsing.
+                if (XML_Parse(parser2, nullptr, 0, 1) == 0) {
+                  int error_code = XML_GetErrorCode(parser2);
+                  BOOST_LOG_TRIVIAL(error) << "finalizing parsing service(2) reply failed, reason: " << error_code << "(" << XML_ErrorString(XML_Error(error_code)) << ")";
+                } else {
+                  BOOST_LOG_TRIVIAL(trace) << "got  " << tiv.size() << " records after url2\n";
+                }
+              }
+            }
           }
         }
 
-        /* Clean up. */
-        free(state.characters.memory);
+        // Clean up
         XML_ParserFree(parser);
         curl_easy_cleanup(curl);
 
@@ -316,7 +383,7 @@ void handler1(const boost::system::error_code& error,
       BOOST_LOG_TRIVIAL(error) << "got std::exception, reason= " << ex.what();
   }
 
-  t->expires_at(t->expires_at() + boost::posix_time::seconds(config.position_poll_timeout));
+  t->expires_at(t->expires_at() + boost::posix_time::seconds(config.service_poll_timeout));
   t->async_wait(boost::bind(handler1, boost::asio::placeholders::error, t));
 }
 
@@ -337,10 +404,13 @@ setup_cmd_options(int argc, char *argv[]) {
       ("dblogin", bpo::value<std::string>(), "db user")
       ("dbpwd", bpo::value<std::string>(), "db user pwd")
       ("vurl", bpo::value<std::string>(), "vurl")
+      ("vurl2", bpo::value<std::string>(), "vurl2")
       ("vuser", bpo::value<std::string>(), "vuser")
       ("vpwd", bpo::value<std::string>(), "vpwd")
       ("consolelog", "skip logging to console")
-      ("pospolltimeout,ppt", bpo::value<int>(), "position poll timeout");
+      ("poll-timeout,pt", bpo::value<int>(), "position poll timeout")
+      ("log-level", bpo::value<int>(), "logging level (1-6) more level, more details")
+      ("reply-timeout, rt", bpo::value<int>(), "service reply timeout");
 
   bpo::variables_map vm;
   try {
@@ -366,8 +436,8 @@ setup_cmd_options(int argc, char *argv[]) {
       config.log_file_path = vm["lfpath"].as<std::string>();
     }
 
-    if (vm.count("pospolltimeout")) {
-      config.position_poll_timeout = vm["pospolltimeout"].as<int>();
+    if (vm.count("poll-timeout")) {
+      config.service_poll_timeout = vm["poll-timeout"].as<int>();
     }
 
     if (vm.count("dbhost")) {
@@ -399,6 +469,9 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cerr << usage << std::endl;
       return 1;
     }
+    if (vm.count("vurl2")) {
+      config.vurl2 = vm["vurl2"].as<std::string>();
+    } 
     if (vm.count("vuser")) {
       config.vuser = vm["vuser"].as<std::string>();
     } else {
@@ -412,6 +485,13 @@ setup_cmd_options(int argc, char *argv[]) {
       std::cerr << "vpwd *must* be obligatory specified" << std::endl;
       std::cerr << usage << std::endl;
       return 1;
+    }
+    if (vm.count("log-level")) {
+      config.log_level = vm["log-level"].as<int>();
+    }
+
+    if (vm.count("reply-timeout")) {
+      config.service_reply_timeout = vm["reply-timeout"].as<int>();
     }
 
   } catch (const boost::program_options::error & err) {
@@ -429,7 +509,7 @@ int main(int argc, char *argv[])
   if (cmo_res !=0)
     return cmo_res;
 
-  setup_logging(config.log_location(), log_level);
+  setup_logging(config.log_location(), config.log_level);
 
   // print work configuration
   BOOST_LOG_TRIVIAL(info) << "\nVIST parser config:" << std::endl
@@ -438,10 +518,13 @@ int main(int argc, char *argv[])
                           << "db name: " << config.db_name() << std::endl
                           << "db user: " << config.db_login() << std::endl
                           << "vurl: " << config.vurl << std::endl
+                          << "vurl2: " << config.vurl2 << std::endl
                           << "vuser: " << config.vuser << std::endl
                           << "log location: " << config.log_location() << std::endl
                           << "consolelog: " << config.consolelog() << std::endl
-                          << "position poll timeout: " << config.position_poll_timeout << " (seconds)" << std::endl;
+                          << "service poll timeout: " << config.service_poll_timeout << " (seconds)" << std::endl
+                          << "service reply timeout: " << config.service_reply_timeout << " (seconds)" << std::endl
+                          << "log level: " << config.log_level << std::endl << std::endl;
 
   int res = db_init_1(config.db_host().c_str(),
                       config.db_port(),

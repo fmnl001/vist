@@ -43,8 +43,12 @@ Technic_info::reset_data()
   lon = "";
   fuel = "";
   speed = "";
+  course = "";
+  height = "";
 
   mid_int = 0;
+
+  analytic_entity.clear();
 
 //  free(blob_);
 //  blob_ = nullptr;
@@ -80,7 +84,8 @@ Technic_info::pack_as_blob()
   size_t rc=0;
 
   size_t size = sizeof(Rmc_);
-  blob_ = reinterpret_cast<BYTE *>(malloc(size+sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
+  blob_ = reinterpret_cast<BYTE *>(malloc(size + analytic_entity.size()*(sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header))
+                                          + (fuel.empty() ? 0 : (sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)))));
   std::fill(blob_, blob_+size, 0);
 
   auto sqlrmc = reinterpret_cast<Rmc_ *> (blob_);
@@ -120,6 +125,7 @@ Technic_info::pack_as_blob()
   if (!fuel.empty()) {
     try {
       auto f = std::stoi(fuel);
+      BOOST_LOG_TRIVIAL(trace) << "write to blob fuel val: " << f << "\n";
 //      data = reinterpret_cast<BYTE *>(realloc(data, size + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)));
       auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
       fld->type  = FIELD_TYPE_AIN|0x80;
@@ -129,25 +135,58 @@ Technic_info::pack_as_blob()
       dt[0].pos = 0;
       dt[0].val = htons(f);
       pdata += sizeof(*dt);
-      size = pdata - blob_;
     } catch (std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
     }
   }
 
-  //      fprintf(stderr, "[%s] time=%s (time_t=%d), valid=%d, latitude=%f, longitude=%f, speed=%f (kmph)\n",
-  //        vec.c_str(),
-  //        buffer,
-  //        ntohl(sqlrmc->dt),
-  //        static_cast<int>(sqlrmc->ext.bits.valid),
-  //        ntohl(sqlrmc->latitude)/600000.0,
-  //        ntohl(sqlrmc->longitude)/600000.0,
-  //        sp/1000.0
-  //      );
-  rc = pdata - blob_;
-  return rc;
+  try {
+    for (const auto & kv : analytic_entity) {
+      BOOST_LOG_TRIVIAL(trace) << "write to blob analytic entity id[" << kv.first << "]: " << kv.second << "\n";
+      auto fld = reinterpret_cast<Rmc_field_header *> (pdata);
+      fld->type  = FIELD_TYPE_AIN|0x80;
+      fld->length = sizeof(Sql_rmc_field_analog);
+      pdata += sizeof(*fld);
+      auto dt = reinterpret_cast<Sql_rmc_field_analog *> (pdata);
+
+      switch (std::stoi(kv.first)) {
+      case 741:
+        dt[0].pos = 1;
+        break;
+      case 742:
+        dt[0].pos = 2;
+        break;
+      case 743:
+        dt[0].pos = 3;
+        break;
+      case 744:
+        dt[0].pos = 4;
+        break;
+      case 41:
+        dt[0].pos = 5;
+        break;
+      case 202:
+        dt[0].pos = 6;
+        break;
+
+      default:
+        dt[0].pos = 1;
+      }
+
+      dt[0].val = htons(std::stoi(kv.second));
+      pdata += sizeof(*dt);
+    }
+  }
+  catch (std::exception& ex) {
+    BOOST_LOG_TRIVIAL(error) << "got std::exception: " << ex.what();
+  }
+
+  return pdata - blob_;;
 }
+
+
 #include <iostream>
+#include "hexdump.h"
 //------------------------------------------------------------------------------
 void
 Technic_info::store_to_db()
@@ -158,6 +197,13 @@ Technic_info::store_to_db()
 
   if (res) {
     std::string id = VIST_ID_PREFIX_IN_DB + vec;
+
+//    if (res > sizeof(Rmc_) + sizeof(Sql_rmc_field_analog) + sizeof(Rmc_field_header)) {
+      std::ostringstream os;
+      neolib::hex_dump(blob_, res, os);
+      BOOST_LOG_TRIVIAL(trace) << "[" << this->vec << "][" << id << "] blob " << res << " bytes hex dump:\n" << os.str();
+//    }
+
     db_store_data(id.c_str(),
                   datetime_as_unix(),
                   (const BYTE*) blob_,
@@ -177,9 +223,20 @@ std::ostream& operator<<(std::ostream& os, const Technic_info& ti)
   os << "datetime: " << ti.dt << "\n";
   os << "latitude: " << ti.lat << "\n";
   os << "longitude: " << ti.lon << "\n";
-  os << "speed: " << ti.speed << "\n";
-  os << "fuel: " << ti.fuel << "\n";
+  if (!ti.speed.empty())
+    os << "speed: " << ti.speed << "\n";
+  if (!ti.course.empty())
+    os << "course: " << ti.course << "\n";
+  if (!ti.height.empty())
+    os << "height: " << ti.height << "\n";
+  if (!ti.fuel.empty())
+    os << "fuel: " << ti.fuel << "\n";
+  if (!ti.analytic_entity.empty()) {
+    os << "AnalyticEntity:\n";
+    for (auto const &i: ti.analytic_entity) {
+      os << "\t[" << i.first << "]:"  << i.second << "\n";
+    }
+  }
   os << "---------------------------------------------\n";
   return os;
 }
-
