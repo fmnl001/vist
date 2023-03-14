@@ -370,6 +370,7 @@ void handler1(const boost::system::error_code& error,
         }
 
         // Clean up
+        XML_ParserFree(parser2);
         XML_ParserFree(parser);
         curl_easy_cleanup(curl);
 
