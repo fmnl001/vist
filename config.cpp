@@ -15,23 +15,24 @@
 
 #define default_log_file_name "vistd.log"
 #define default_log_file_path "/tmp"
-#define default_db_host "localhost"
-static int  default_db_port=3306;
+#define default_db_host       "localhost"
+static int default_db_port = 3306;
 #define default_db_name "gmng"
-static int SERVICE_POLL_TIMEOUT = 30; // seconds
+static int SERVICE_POLL_TIMEOUT  = 30; // seconds
 static int SERVICE_REPLY_TIMEOUT = 10; // seconds
-static int log_level_default = 5;
+static int log_level_default     = 5;
 
 //------------------------------------------------------------------------------
-Config::Config():dbms_host(default_db_host),
-                 dbms_port(default_db_port),
-                 dbms_dbname(default_db_name),
-                 log_file_path(default_log_file_path),
-                 log_file_name(default_log_file_name),
-                 log_level(log_level_default),
-                 service_poll_timeout(SERVICE_POLL_TIMEOUT),
-                 service_reply_timeout(SERVICE_REPLY_TIMEOUT),
-                 log2console(false)
+Config::Config()
+    : dbms_host(default_db_host),
+      dbms_port(default_db_port),
+      dbms_dbname(default_db_name),
+      log_file_path(default_log_file_path),
+      log_file_name(default_log_file_name),
+      log_level(log_level_default),
+      service_poll_timeout(SERVICE_POLL_TIMEOUT),
+      service_reply_timeout(SERVICE_REPLY_TIMEOUT),
+      log2console(false)
 {
 }
 
@@ -45,42 +46,46 @@ Config::log_location() const
 
 //------------------------------------------------------------------------------
 std::string
-Config::db_login() const {
+Config::db_login() const
+{
   return dbms_login;
 }
 
 //------------------------------------------------------------------------------
 std::string
-Config::db_pwd() const {
+Config::db_pwd() const
+{
   return dbms_pwd;
 }
 
 //------------------------------------------------------------------------------
-int
-Config::db_port() const {
+int Config::db_port() const
+{
   return dbms_port;
 }
 
 //------------------------------------------------------------------------------
 std::string
-Config::db_name() const {
+Config::db_name() const
+{
   return dbms_dbname;
 }
 
 //------------------------------------------------------------------------------
 std::string
-Config::db_host() const {
+Config::db_host() const
+{
   return dbms_host;
 }
 
 //------------------------------------------------------------------------------
-bool
-Config::consolelog() const {
+bool Config::consolelog() const
+{
   return log2console;
 }
 
 //------------------------------------------------------------------------------
-void
-Config::consolelog(bool flag) {
+void Config::consolelog(bool flag)
+{
   log2console = flag;
 }
