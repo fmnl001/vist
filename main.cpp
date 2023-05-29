@@ -374,7 +374,26 @@ setup_cmd_options(int argc, char *argv[])
   std::string const version{"VIST parser v0.1"};
 
   bpo::options_description usage("Usage");
-  usage.add_options()("version,v", "print version string")("help", "produce help message")("lfpath,l", bpo::value<std::string>(), "path to log file ")("dbhost", bpo::value<std::string>(), "db host")("dbport", bpo::value<int>(), "db port")("dbname", bpo::value<std::string>(), "db name")("dblogin", bpo::value<std::string>(), "db user")("dbpwd", bpo::value<std::string>(), "db user pwd")("vurl", bpo::value<std::string>(), "vurl")("vurl2", bpo::value<std::string>(), "vurl2")("vuser", bpo::value<std::string>(), "vuser")("vpwd", bpo::value<std::string>(), "vpwd")("consolelog", "skip logging to console")("poll-timeout,pt", bpo::value<int>(), "position poll timeout")("log-level", bpo::value<int>(), "logging level (1-6) more level, more details")("reply-timeout, rt", bpo::value<int>(), "service reply timeout");
+
+  // clang-format off
+  usage.add_options()
+      ("version,v", "print version string")
+      ("help", "produce help message")
+      ("lfpath,l", bpo::value<std::string>(), "path to log file ")
+      ("dbhost", bpo::value<std::string>(), "db host")
+      ("dbport", bpo::value<int>(), "db port")
+      ("dbname", bpo::value<std::string>(), "db name")
+      ("dblogin", bpo::value<std::string>(), "db user")
+      ("dbpwd", bpo::value<std::string>(), "db user pwd")
+      ("vurl", bpo::value<std::string>(), "vurl")
+      ("vurl2", bpo::value<std::string>(), "vurl2")
+      ("vuser", bpo::value<std::string>(), "vuser")
+      ("vpwd", bpo::value<std::string>(), "vpwd")
+      ("consolelog", "skip logging to console")
+      ("poll-timeout,pt", bpo::value<int>(), "position poll timeout")
+      ("log-level", bpo::value<int>(), "logging level (1-6) more level, more details")
+      ("reply-timeout, rt", bpo::value<int>(), "service reply timeout");
+  // clang-format on
 
   bpo::variables_map vm;
   try {
